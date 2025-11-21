@@ -46,3 +46,49 @@ scatter!([x_gt[1]], [x_gt[2]], label="Ground Truth", marker=:x, color=:red, mark
 scatter!(P[1, :], P[2, :], label="Beacons")
 title!("log10 of Cost")
 savefig("newton_optimizer_plot.png")
+
+# ---- P7 test ----
+x_hat = x_trace[end]
+n = length(x_hat)
+
+gradient_f(xc) = begin
+    g = zeros(n)
+    m = size(P, 2)
+    @inbounds for i in 1:m
+        dx = xc .- P[:, i]
+        nd = norm(dx)
+        if nd > 1e-12
+            g .+= 2 * (nd - d[i]) * (dx / nd)
+        end
+    end
+    g
+end
+
+hessian_f(xc) = begin
+    H = zeros(n, n)
+    m = size(P, 2)
+    I_n = Matrix{Float64}(I, n, n)
+    @inbounds for i in 1:m
+        dx = xc .- P[:, i]
+        nd = norm(dx)
+        if nd > 1e-12
+            term1 = (dx * dx') / nd^2
+            term2 = (nd - d[i]) * ((I_n / nd) - (dx * dx') / nd^3)
+            H .+= 2 * (term1 + term2)
+        end
+    end
+    H
+end
+
+g_final = gradient_f(x_hat)
+println("\n--- Problem 7 Test (same data as plot) ---")
+println("Estimated x̂       = ", x_hat)
+println("Ground truth x_gt = ", x_gt)
+println("Final gradient norm ||∇f(x̂)|| = ", norm(g_final))
+println("Final gradient = ", g_final)
+
+H_final = hessian_f(x_hat)
+eigvals_H = eigvals(H_final)
+println("Eigenvalues of Hessian at x̂: ", eigvals_H)
+println("λ_min = ", minimum(eigvals_H), ", λ_max = ", maximum(eigvals_H))
+println("--------------------------------------------------")
